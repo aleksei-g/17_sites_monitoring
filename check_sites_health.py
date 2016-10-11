@@ -1,11 +1,87 @@
-def load_urls4check(path):
-    pass
+import argparse
+import os.path
+import sys
+import requests
+import whois
+from urllib.parse import urlparse
+from datetime import date, timedelta
+
+
+MIN_EXPIRATION_DATE = 30
+
+
+def create_parser():
+    parser = argparse.ArgumentParser(description='Скрипт выполняет проверку \
+                                     состояния сайтов.')
+    parser.add_argument('-f', '--file', metavar='ФАЙЛ',
+                        help='Имя файла с URL адресами для проверки.')
+    return parser
+
+
+def check_filepath(filepath):
+    if not os.path.exists(filepath):
+        print('Файл не существует!')
+        return False
+    return True
+
+
+def get_url_list(filepath):
+    with open(filepath, 'r') as f:
+        return f.read().splitlines()
+
+
+def get_domain_name_from_url(url):
+    return urlparse(url).netloc
+
 
 def is_server_respond_with_200(url):
-    pass
+    try:
+        response = requests.get(url, timeout=(5, 5))
+    except requests.exceptions.RequestException:
+        return False
+    return response.status_code == requests.codes.ok
+
 
 def get_domain_expiration_date(domain_name):
-    pass
+    expiration_date = whois.whois(domain_name).expiration_date
+    return expiration_date[0].date() if expiration_date else None
+
+
+def output_status_site(url):
+    err = False
+    if is_server_respond_with_200(url):
+        tests_str = '\tСервер отвечает на запрос статусом HTTP 200\n'
+    else:
+        tests_str = '\tСервер НЕ отвечает на запрос статусом HTTP 200\n'
+        err = True
+    expiration_date = get_domain_expiration_date(get_domain_name_from_url(url))
+    if expiration_date:
+        if (expiration_date - date.today()).days > MIN_EXPIRATION_DATE:
+            tests_str += \
+                '\tДоменное имя проплачено как минимум на 1 месяц вперед\n'
+        else:
+            tests_str += '\tИстекает срок действия проплаты доменного имени\n'
+            err = True
+    else:
+        tests_str += '\tНе удалось получить expiration date.\n'
+        err = True
+    if not err:
+        output_status_str = url + '\nТест: ОК\n' + tests_str
+    else:
+        output_status_str = url + '\nТест: FAIL\n' + tests_str
+    print(output_status_str)
+
 
 if __name__ == '__main__':
-    pass
+    parser = create_parser()
+    namespace = parser.parse_args()
+    if namespace.file:
+        filepath = namespace.file
+    else:
+        filepath = input('Введите текстовый файл с URL адресами '
+                         'для проверки:\n')
+    if not check_filepath(filepath):
+        sys.exit(1)
+    url_list = get_url_list(filepath)
+    for url in url_list:
+        output_status_site(url)
