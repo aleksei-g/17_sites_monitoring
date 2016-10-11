@@ -38,8 +38,8 @@ def is_server_respond_with_200(url):
     try:
         response = requests.get(url, timeout=(5, 5))
     except requests.exceptions.RequestException:
-        return False
-    return response.status_code == requests.codes.ok
+        return None
+    return response.status_code
 
 
 def get_domain_expiration_date(domain_name):
@@ -49,10 +49,13 @@ def get_domain_expiration_date(domain_name):
 
 def output_status_site(url):
     err = False
-    if is_server_respond_with_200(url):
-        tests_str = '\tСервер отвечает на запрос статусом HTTP 200\n'
+    status_code = is_server_respond_with_200(url)
+    if status_code:
+        tests_str = '\tСервер отвечает на запрос статусом %s\n' % status_code
+        if status_code != requests.codes.ok:
+            err = True
     else:
-        tests_str = '\tСервер НЕ отвечает на запрос статусом HTTP 200\n'
+        tests_str = '\tСайт недоступен!\n'
         err = True
     expiration_date = get_domain_expiration_date(get_domain_name_from_url(url))
     if expiration_date:
