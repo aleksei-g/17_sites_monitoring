@@ -69,9 +69,9 @@ def output_status_site(url):
         tests_str += '\tНе удалось получить expiration date.\n'
         err = True
     if not err:
-        output_status_str = url + '\nТест: ОК\n' + tests_str
+        output_status_str = '%s%s%s' % (url, '\nТест: ОК\n', tests_str)
     else:
-        output_status_str = url + '\nТест: FAIL\n' + tests_str
+        output_status_str = '%s%s%s' % (url, '\nТест: FAIL\n', tests_str)
     print(output_status_str)
 
 
