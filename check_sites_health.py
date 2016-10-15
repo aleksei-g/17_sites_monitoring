@@ -55,7 +55,6 @@ def output_status_site(url):
 if __name__ == '__main__':
     parser = create_parser()
     namespace = parser.parse_args()
-    old_stdout = sys.stdout
     if namespace.file:
         filepath = namespace.file
     else:
