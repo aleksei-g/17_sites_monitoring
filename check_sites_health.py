@@ -18,13 +18,6 @@ def create_parser():
     return parser
 
 
-def check_filepath(filepath):
-    if not os.path.exists(filepath):
-        print('Файл не существует!')
-        return False
-    return True
-
-
 def get_url_list(filepath):
     with open(filepath, 'r') as f:
         return f.read().splitlines()
@@ -84,7 +77,8 @@ if __name__ == '__main__':
     else:
         filepath = input('Введите текстовый файл с URL адресами '
                          'для проверки:\n')
-    if not check_filepath(filepath):
+    if not os.path.exists(filepath):
+        print('Файл не существует!')
         sys.exit(1)
     url_list = get_url_list(filepath)
     for url in url_list:
