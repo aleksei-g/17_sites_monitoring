@@ -4,7 +4,7 @@ import sys
 import requests
 import whois
 from urllib.parse import urlparse
-from datetime import date, timedelta
+from datetime import date
 
 
 MIN_EXPIRATION_DATE = 30
@@ -23,16 +23,12 @@ def get_url_list(filepath):
         return f.read().splitlines()
 
 
-def get_domain_name_from_url(url):
-    return urlparse(url).netloc
-
-
 def is_server_respond_with_200(url):
     try:
-        response = requests.get(url, timeout=(5, 5))
+        return requests.get(url, timeout=(5, 5)).status_code == \
+               requests.codes.ok
     except requests.exceptions.RequestException:
-        return None
-    return response.status_code
+        return False
 
 
 def get_domain_expiration_date(domain_name):
@@ -40,33 +36,18 @@ def get_domain_expiration_date(domain_name):
     return expiration_date[0].date() if expiration_date else None
 
 
+def is_paid_domain_name(domain_name):
+    expiration_date = get_domain_expiration_date(domain_name)
+    return (expiration_date - date.today()).days > MIN_EXPIRATION_DATE \
+        if expiration_date else False
+
+
 def output_status_site(url):
-    err = False
-    status_code = is_server_respond_with_200(url)
-    if status_code:
-        tests_str = '\tСервер отвечает на запрос статусом %s\n' % status_code
-        if status_code != requests.codes.ok:
-            err = True
-    else:
-        tests_str = '\tСайт недоступен!\n'
-        err = True
-    expiration_date = get_domain_expiration_date(get_domain_name_from_url(url))
-    if expiration_date:
-        if (expiration_date - date.today()).days > MIN_EXPIRATION_DATE:
-            tests_str += \
-                '\tДоменное имя проплачено как минимум на 1 месяц вперед\n'
-        else:
-            tests_str += '\tИстекает срок действия проплаты доменного имени\n'
-            err = True
-    else:
-        tests_str += '\tНе удалось получить expiration date.\n'
-        err = True
-    if not err:
-        test_status = '\nТест: ОК\n'
-    else:
-        test_status = '\nТест: FAIL\n'
-    output_status_str = '%s%s%s' % (url, test_status, tests_str)
-    print(output_status_str)
+    print('{} \n\tHTTP статус 200: {} '
+          '\n\tДоменное имя оплачено на месяц вперед: {}\n'
+          .format(url,
+                  is_server_respond_with_200(url),
+                  is_paid_domain_name(urlparse(url).netloc)))
 
 
 if __name__ == '__main__':
