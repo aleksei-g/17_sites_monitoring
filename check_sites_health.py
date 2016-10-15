@@ -4,10 +4,12 @@ import sys
 import requests
 import whois
 from urllib.parse import urlparse
-from datetime import date
+from datetime import date, datetime
 
 
 MIN_EXPIRATION_DATE = 30
+STDOUT_FILE_RESULT = './result.txt'
+STDOUT_FILE_ERROR = './error.txt'
 
 
 def create_parser():
@@ -53,14 +55,19 @@ def output_status_site(url):
 if __name__ == '__main__':
     parser = create_parser()
     namespace = parser.parse_args()
+    old_stdout = sys.stdout
     if namespace.file:
         filepath = namespace.file
     else:
         filepath = input('Введите текстовый файл с URL адресами '
                          'для проверки:\n')
+    sys.stdout = open(STDOUT_FILE_ERROR, 'a')
     if not os.path.exists(filepath):
-        print('Файл не существует!')
+        print('{}: Файл "{}" не существует!'
+              .format(datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"),
+                      filepath))
         sys.exit(1)
+    sys.stdout = open(STDOUT_FILE_RESULT, 'w')
     url_list = get_url_list(filepath)
     for url in url_list:
         output_status_site(url)
