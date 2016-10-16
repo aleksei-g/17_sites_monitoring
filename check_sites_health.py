@@ -1,5 +1,4 @@
 import argparse
-import os.path
 import sys
 import requests
 import whois
@@ -8,21 +7,16 @@ from datetime import date, datetime
 
 
 MIN_EXPIRATION_DATE = 30
-STDOUT_FILE_RESULT = './result.txt'
-STDOUT_FILE_ERROR = './error.txt'
 
 
 def create_parser():
     parser = argparse.ArgumentParser(description='Скрипт выполняет проверку \
                                      состояния сайтов.')
     parser.add_argument('-f', '--file', metavar='ФАЙЛ',
+                        type=argparse.FileType('r'),
+                        default='-',
                         help='Имя файла с URL адресами для проверки.')
     return parser
-
-
-def get_url_list(filepath):
-    with open(filepath, 'r') as f:
-        return f.read().splitlines()
 
 
 def is_server_respond_with_200(url):
@@ -35,7 +29,13 @@ def is_server_respond_with_200(url):
 
 def get_domain_expiration_date(domain_name):
     expiration_date = whois.whois(domain_name).expiration_date
-    return expiration_date[0].date() if expiration_date else None
+    if expiration_date:
+        if type(expiration_date) == datetime:
+            return expiration_date.date()
+        elif type(expiration_date) == list:
+            return expiration_date[0].date()
+    else:
+        return None
 
 
 def is_paid_domain_name(domain_name):
@@ -55,18 +55,10 @@ def output_status_site(url):
 if __name__ == '__main__':
     parser = create_parser()
     namespace = parser.parse_args()
-    if namespace.file:
-        filepath = namespace.file
-    else:
-        filepath = input('Введите текстовый файл с URL адресами '
-                         'для проверки:\n')
-    sys.stdout = open(STDOUT_FILE_ERROR, 'a')
-    if not os.path.exists(filepath):
-        print('{}: Файл "{}" не существует!'
-              .format(datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"),
-                      filepath))
-        sys.exit(1)
-    sys.stdout = open(STDOUT_FILE_RESULT, 'w')
-    url_list = get_url_list(filepath)
+    filepath = namespace.file
+    url_list = filepath.read().splitlines()
+    if not url_list:
+        print('Скрипт не получил данных для обработки!',
+              file=sys.stderr)
     for url in url_list:
         output_status_site(url)
